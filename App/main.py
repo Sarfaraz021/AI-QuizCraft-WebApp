@@ -5,15 +5,12 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.prompts.prompt import PromptTemplate
 from langchain.chains import RetrievalQA
 from langchain.memory import ConversationBufferMemory
-# from langchain_community.document_loaders import DirectoryLoader
-from langchain_community.document_loaders import Docx2txtLoader
-from langchain_community.document_loaders import UnstructuredExcelLoader
-from langchain_community.document_loaders.csv_loader import CSVLoader
-from langchain_community.document_loaders import TextLoader
-from langchain_community.document_loaders import PyPDFLoader
-
+from langchain_community.document_loaders import Docx2txtLoader, UnstructuredExcelLoader, CSVLoader, TextLoader, PyPDFLoader
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone
+
+# Import the prompt template text
+from prompt import prompt_template_text
 
 
 class RAGAssistant:
@@ -21,9 +18,9 @@ class RAGAssistant:
         self.load_env_variables()
         self.setup_prompt_template()
         self.retriever = None  # Define retriever as an instance variable
-        default_documents_directory = r"App\data\dummy.txt"
+        default_documents_directory = r"D:\AI-QuizCraft-WebApp\App\data\dummy.txt"
         self.initialize_retriever(default_documents_directory)
-        self.llm = ChatOpenAI(model="gpt-4-turbo-preview", temperature=0.9)
+        self.llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
 
     def load_env_variables(self):
         """Loads environment variables from .env file."""
@@ -34,23 +31,9 @@ class RAGAssistant:
 
     def setup_prompt_template(self):
         """Sets up the prompt template for chat completions."""
-        self.template = """
-INSTRUCTIONS:
-Generate Quality Response according to users query.
-<ctx>
-{context}
-</ctx>
-------
-<hs>
-{history}
-</hs>
-------
-{question}
-Answer:
-"""
         self.prompt_template = PromptTemplate(
             input_variables=["history", "context", "question"],
-            template=self.template,
+            template=prompt_template_text,
         )
 
     def initialize_retriever(self, directory_path):
@@ -120,3 +103,45 @@ Answer:
                 assistant_response = chain.invoke(prompt)  # type: ignore
                 print(f"AI Assistant: {assistant_response['result']}")
                 print("*********************************")
+
+    def generate_quiz(self, subject, num_questions):
+        """Generates a quiz with the specified number of questions for the given subject."""
+        chain = RetrievalQA.from_chain_type(
+            llm=self.llm,
+            chain_type='stuff',
+            retriever=self.retriever,  # Use the instance variable here
+            chain_type_kwargs={"verbose": False, "prompt": self.prompt_template,
+                               "memory": ConversationBufferMemory(memory_key="history", input_key="question")}
+        )
+
+        prompt = f"Generate 1 quiz with {num_questions} MCQs for {subject}."
+        assistant_response = chain.invoke(prompt)  # type: ignore
+        print(f"Quiz:\n{assistant_response['result']}")
+        print("*********************************")
+
+    def start(self):
+        """Main function to start the assistant."""
+        while True:
+            choice = input(
+                "\nEnter 1 for RAG Assistant chat, 2 to Fine-tune RAG, or 3 to Generate a Quiz: ").strip()
+            if choice == "1":
+                self.chat()
+            elif choice == "2":
+                path = input(
+                    "Enter directory path to fine-tune the RAG: ").strip()
+                self.finetune(path)
+                print(
+                    "\nFine-tuning done successfully. You can now chat with the updated RAG Assistant.\n")
+            elif choice == "3":
+                subject = input(
+                    "Enter the subject (math, physics, english): ").strip().lower()
+                num_questions = input(
+                    f"How many questions do you need in the quiz for {subject}? ").strip()
+                self.generate_quiz(subject, num_questions)
+            else:
+                print("Invalid choice. Please enter 1, 2, or 3.")
+
+
+if __name__ == "__main__":
+    rag_assistant = RAGAssistant()
+    rag_assistant.start()
