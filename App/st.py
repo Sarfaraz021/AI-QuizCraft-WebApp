@@ -4,7 +4,7 @@
 # from langchain.memory import ConversationBufferMemory
 # import os
 
-# os.environ['OPENAI_API_KEY'] = "sk-proj-HbC1wEEOt5xF5PJ1HyNzT3BlbkFJ9SQVddzYEzyG8SN50xRx"
+# os.environ['OPENAI_API_KEY'] = ""
 
 # # Initialize the LangChain components
 # llm = OpenAI(model_name="gpt-4o")
