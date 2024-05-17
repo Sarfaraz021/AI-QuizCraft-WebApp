@@ -18,8 +18,10 @@ class RAGAssistant:
         self.load_env_variables()
         self.setup_prompt_template()
         self.retriever = None  # Define retriever as an instance variable
-        default_documents_directory = r"D:\AI-QuizCraft-WebApp\App\data\dummy.txt"
-        self.initialize_retriever(default_documents_directory)
+        self.relative_path = 'data'
+        self.filename = 'dummy.txt'
+        self.absolute_path = os.path.join(self.relative_path, self.filename)
+        self.initialize_retriever(self.absolute_path)
         self.llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
 
     def load_env_variables(self):
