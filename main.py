@@ -23,7 +23,7 @@ class Main:
         self.filename = 'dummy.txt'
         self.absolute_path = os.path.join(self.relative_path, self.filename)
         self.initialize_retriever(self.absolute_path)
-        self.llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
+        self.llm = ChatOpenAI(model="gpt-4", temperature=0.7)
 
     def load_env_variables(self):
         load_dotenv('var.env')
@@ -101,7 +101,7 @@ class Main:
                                "memory": ConversationBufferMemory(memory_key="history", input_key="question")}
         )
 
-        prompt = f"Generate a quiz with {num_questions} MCQs for {subject}. {instruction}"
+        prompt = f"Generate a quiz with {num_questions} MCQs for {subject}. {instruction} Make sure to mark the correct answer with [Correct]."
         assistant_response = chain.invoke(prompt)
         return assistant_response['result']
 
@@ -173,30 +173,63 @@ elif option == "Generate Quiz":
             with st.spinner("Generating quiz..."):
                 quiz_text = main.generate_quiz(
                     subject, num_questions, instruction)
-                quiz_lines = quiz_text.split("\n")
-                st.session_state.quiz = [
-                    line for line in quiz_lines if line.strip()]
+
+                # Process the quiz text to create questions and options
+                st.session_state.quiz = []
+                st.session_state.correct_answers = []
+                lines = quiz_text.strip().split("\n")
+                current_question = ""
+                current_options = []
+                current_answer = None
+
+                for line in lines:
+                    if line.startswith("A. ") or line.startswith("B. ") or line.startswith("C. ") or line.startswith("D. "):
+                        if "[Correct]" in line:  # Assuming correct option is marked with [Correct]
+                            current_answer = line.split(" ")[0].strip()
+                            line = line.replace("[Correct]", "").strip()
+                        current_options.append(line)
+                    else:
+                        if current_question and current_options:
+                            st.session_state.quiz.append({
+                                "question": current_question,
+                                "options": current_options
+                            })
+                            st.session_state.correct_answers.append(
+                                current_answer)
+                            current_question = line
+                            current_options = []
+                        else:
+                            current_question = line
+
+                if current_question and current_options:
+                    st.session_state.quiz.append({
+                        "question": current_question,
+                        "options": current_options
+                    })
+                    st.session_state.correct_answers.append(current_answer)
+
                 st.session_state.answers = [None] * len(st.session_state.quiz)
-                st.session_state.correct_answers = [
-                    "A", "B", "C", "D"][:len(st.session_state.quiz)]
+
             st.success("Quiz generated successfully!")
 
     if st.session_state.quiz:
         st.markdown("### Attempt the Quiz")
-        for i, question in enumerate(st.session_state.quiz):
-            st.markdown(question)
-            options = ["A", "B", "C", "D"]
+        for i, qa in enumerate(st.session_state.quiz):
+            question = qa["question"]
+            options = qa["options"]
+            st.markdown(f"**{i+1}. {question}**")
             user_choice = st.radio(
                 f"Select an option for question {i+1}", options, key=f"answer_{i}")
 
             if user_choice:
-                st.session_state.answers[i] = user_choice
+                st.session_state.answers[i] = user_choice.split(".")[0]
 
         if st.button("Submit Quiz"):
             user_answers = st.session_state.answers
             for i in range(len(st.session_state.quiz)):
-                if user_answers[i] == st.session_state.correct_answers[i]:
+                correct_answer = st.session_state.correct_answers[i]
+                if user_answers[i] == correct_answer:
                     st.write(f"Question {i+1}: ✅ Correct")
                 else:
                     st.write(
-                        f"Question {i+1}: ❌ Incorrect. Correct answer: {st.session_state.correct_answers[i]}")
+                        f"Question {i+1}: ❌ Incorrect. Correct answer: {correct_answer}")
