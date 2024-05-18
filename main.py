@@ -1,5 +1,5 @@
-import os
 import streamlit as st
+import os
 from dotenv import load_dotenv
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -10,7 +10,6 @@ from langchain_community.document_loaders import Docx2txtLoader, UnstructuredExc
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone
 
-# Import the prompt template text
 from prompt import prompt_template_text
 
 
