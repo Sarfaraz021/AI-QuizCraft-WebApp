@@ -1,4 +1,5 @@
 import os
+import streamlit as st
 from dotenv import load_dotenv
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -13,11 +14,11 @@ from pinecone import Pinecone
 from prompt import prompt_template_text
 
 
-class RAGAssistant:
+class Main:
     def __init__(self):
         self.load_env_variables()
         self.setup_prompt_template()
-        self.retriever = None  # Define retriever as an instance variable
+        self.retriever = None
         self.relative_path = 'data'
         self.filename = 'dummy.txt'
         self.absolute_path = os.path.join(self.relative_path, self.filename)
@@ -25,21 +26,18 @@ class RAGAssistant:
         self.llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
 
     def load_env_variables(self):
-        """Loads environment variables from .env file."""
         load_dotenv('var.env')
         self.openai_api_key = os.getenv('OPENAI_API_KEY')
         self.pinecone_api_key = os.getenv("PINECONE_API_KEY")
         self.pinecone_index_name = os.getenv("PINECONE_INDEX_NAME")
 
     def setup_prompt_template(self):
-        """Sets up the prompt template for chat completions."""
         self.prompt_template = PromptTemplate(
             input_variables=["history", "context", "question"],
             template=prompt_template_text,
         )
 
     def initialize_retriever(self, directory_path):
-        """Initializes the retriever with documents from the specified directory path."""
         loader = TextLoader(directory_path)
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(
@@ -53,7 +51,6 @@ class RAGAssistant:
         self.retriever = vectbd.as_retriever()
 
     def finetune(self, file_path):
-        """Determines the document type and uses the appropriate loader to fine-tune the model."""
         if file_path.endswith('.pdf'):
             loader = PyPDFLoader(file_path)
         elif file_path.endswith('.txt'):
@@ -73,7 +70,6 @@ class RAGAssistant:
         self.process_documents(documents)
 
     def process_documents(self, documents):
-        """Process and index the documents."""
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=10000, chunk_overlap=200)
         docs = text_splitter.split_documents(documents)
@@ -83,67 +79,124 @@ class RAGAssistant:
             docs, embeddings, index_name=self.pinecone_index_name)
         self.retriever = vectbd.as_retriever()
 
-    def chat(self):
-        """Starts a chat session with the AI assistant."""
-
+    def chat(self, user_input):
         chain = RetrievalQA.from_chain_type(
             llm=self.llm,
             chain_type='stuff',
-            retriever=self.retriever,  # Use the instance variable here
+            retriever=self.retriever,
+            chain_type_kwargs={"verbose": False, "prompt": self.prompt_template,
+                               "memory": ConversationBufferMemory(memory_key="history", input_key="question")}
+        )
+        assistant_response = chain.invoke(user_input)
+        response_text = assistant_response['result']
+
+        return response_text
+
+    def generate_quiz(self, subject, num_questions, instruction):
+        chain = RetrievalQA.from_chain_type(
+            llm=self.llm,
+            chain_type='stuff',
+            retriever=self.retriever,
             chain_type_kwargs={"verbose": False, "prompt": self.prompt_template,
                                "memory": ConversationBufferMemory(memory_key="history", input_key="question")}
         )
 
-        print("----------RAG Assistant----------\n")
-        while True:
-            prompt = input("Enter Prompt (or 'exit' to quit): ").strip()
-            if prompt.lower() == "exit":
-                print("Thanks!! Exiting...")
-                break
-            else:
-                # Use 'chain' instead of 'self.chain'
-                assistant_response = chain.invoke(prompt)  # type: ignore
-                print(f"AI Assistant: {assistant_response['result']}")
-                print("*********************************")
-
-    def generate_quiz(self, subject, num_questions):
-        """Generates a quiz with the specified number of questions for the given subject."""
-        chain = RetrievalQA.from_chain_type(
-            llm=self.llm,
-            chain_type='stuff',
-            retriever=self.retriever,  # Use the instance variable here
-            chain_type_kwargs={"verbose": False, "prompt": self.prompt_template,
-                               "memory": ConversationBufferMemory(memory_key="history", input_key="question")}
-        )
-
-        prompt = f"Generate 1 quiz with {num_questions} MCQs for {subject}."
-        assistant_response = chain.invoke(prompt)  # type: ignore
-        print(f"Quiz:\n{assistant_response['result']}")
-        print("*********************************")
-
-    def start(self):
-        """Main function to start the assistant."""
-        while True:
-            choice = input(
-                "\nEnter 1 for RAG Assistant chat, 2 to Fine-tune RAG, or 3 to Generate a Quiz: ").strip()
-            if choice == "1":
-                self.chat()
-            elif choice == "2":
-                path = input(
-                    "Enter directory path to fine-tune the RAG: ").strip()
-                self.finetune(path)
-                print(
-                    "\nFine-tuning done successfully. You can now chat with the updated RAG Assistant.\n")
-            elif choice == "3":
-                subject = input(
-                    "Enter the subject (math, physics, english): ").strip().lower()
-                num_questions = input(
-                    f"How many questions do you need in the quiz for {subject}? ").strip()
-                self.generate_quiz(subject, num_questions)
-            else:
-                print("Invalid choice. Please enter 1, 2, or 3.")
+        prompt = f"Generate a quiz with {num_questions} MCQs for {subject}. {instruction}"
+        assistant_response = chain.invoke(prompt)
+        return assistant_response['result']
 
 
-if __name__ == "__main__":
-    rag_assistant = RAGAssistant()
-    rag_assistant.start()
+main = Main()
+
+st.set_page_config(page_title="Kamran Assistant", layout="wide")
+
+st.title("Kamran Assistant")
+
+# Initialize session state
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "quiz" not in st.session_state:
+    st.session_state.quiz = []
+if "answers" not in st.session_state:
+    st.session_state.answers = []
+if "correct_answers" not in st.session_state:
+    st.session_state.correct_answers = []
+
+option = st.sidebar.selectbox(
+    "Choose an option", ("Chat", "Fine-tuning", "Generate Quiz"))
+
+if option == "Chat":
+    st.header("Chat with your Docs")
+
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    if prompt := st.chat_input("What is up?"):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        response = main.chat(prompt)
+        st.session_state.messages.append(
+            {"role": "assistant", "content": response})
+
+        with st.chat_message("assistant"):
+            st.markdown(response)
+
+elif option == "Fine-tuning":
+    st.header("Fine-tune RAG Assistant")
+    uploaded_file = st.file_uploader(
+        "Upload a file for fine-tuning", type=["txt", "pdf", "csv", "xlsx", "docx"])
+
+    if uploaded_file is not None:
+        upload_dir = "uploads"
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, uploaded_file.name)
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        with st.spinner("Fine-tuning in progress..."):
+            main.finetune(file_path)
+        st.success(
+            "Fine-tuning done successfully. You can now chat with the updated RAG Assistant.")
+
+elif option == "Generate Quiz":
+    st.header("Generate Quiz")
+    subject = st.text_input("Enter the subject (e.g., math, physics, english)")
+    num_questions = st.number_input(
+        "Number of questions", min_value=1, max_value=100, step=1)
+    instruction = st.text_input(
+        "Enter any additional instructions (e.g., I need these MCQs from algebra chapter 1)")
+
+    if st.button("Generate Quiz"):
+        if subject and num_questions and instruction:
+            with st.spinner("Generating quiz..."):
+                quiz_text = main.generate_quiz(
+                    subject, num_questions, instruction)
+                quiz_lines = quiz_text.split("\n")
+                st.session_state.quiz = [
+                    line for line in quiz_lines if line.strip()]
+                st.session_state.answers = [None] * len(st.session_state.quiz)
+                st.session_state.correct_answers = [
+                    "A", "B", "C", "D"][:len(st.session_state.quiz)]
+            st.success("Quiz generated successfully!")
+
+    if st.session_state.quiz:
+        st.markdown("### Attempt the Quiz")
+        for i, question in enumerate(st.session_state.quiz):
+            st.markdown(question)
+            options = ["A", "B", "C", "D"]
+            user_choice = st.radio(
+                f"Select an option for question {i+1}", options, key=f"answer_{i}")
+
+            if user_choice:
+                st.session_state.answers[i] = user_choice
+
+        if st.button("Submit Quiz"):
+            user_answers = st.session_state.answers
+            for i in range(len(st.session_state.quiz)):
+                if user_answers[i] == st.session_state.correct_answers[i]:
+                    st.write(f"Question {i+1}: ✅ Correct")
+                else:
+                    st.write(
+                        f"Question {i+1}: ❌ Incorrect. Correct answer: {st.session_state.correct_answers[i]}")
