@@ -111,9 +111,9 @@ class Main:
 
 main = Main()
 
-st.set_page_config(page_title="Kamran Assistant", layout="wide")
+st.set_page_config(page_title="AI-QuizCraft", layout="wide")
 
-st.title("Kamran Assistant")
+st.title("AI-QuizCraft")
 
 # Initialize session state
 if "messages" not in st.session_state:
