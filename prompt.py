@@ -42,5 +42,4 @@ Use the following context to generate relevant quizzes:
 ------
 {question}
 Answer:
-
 """

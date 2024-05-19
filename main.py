@@ -227,8 +227,6 @@ elif option == "Generate Quiz":
             user_answers = st.session_state.answers
             for i in range(len(st.session_state.quiz)):
                 correct_answer = st.session_state.correct_answers[i]
-                if user_answers[i] == correct_answer:
-                    st.write(f"Question {i+1}: ✅ Correct")
-                else:
-                    st.write(
-                        f"Question {i+1}: ❌ Incorrect. Correct answer: {correct_answer}")
+                selected_answer = st.session_state.answers[i]
+                st.write(
+                    f"Question {i+1}: (Your Answer: {selected_answer}). Correct Answer: {correct_answer}")
