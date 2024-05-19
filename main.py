@@ -9,6 +9,7 @@ from langchain.memory import ConversationBufferMemory
 from langchain_community.document_loaders import Docx2txtLoader, UnstructuredExcelLoader, CSVLoader, TextLoader, PyPDFLoader
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone
+from fpdf import FPDF
 
 from prompt import prompt_template_text
 
@@ -40,7 +41,7 @@ class Main:
         loader = TextLoader(directory_path)
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000, chunk_overlap=200)
+            chunk_size=10000, chunk_overlap=200)
         docs = text_splitter.split_documents(documents)
         embeddings = OpenAIEmbeddings()
 
@@ -108,12 +109,36 @@ class Main:
         assistant_response = chain.invoke(prompt)
         return assistant_response['result']
 
+    def generate_pdf(self, quiz, user_answers, correct_answers):
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.cell(200, 10, txt="AI-QuizCraft", ln=True, align='C')
+        pdf.cell(200, 10, txt="Quiz Results", ln=True, align='C')
+
+        for i, qa in enumerate(quiz):
+            question = qa["question"]
+            options = qa["options"]
+            user_answer = user_answers[i]
+            correct_answer = correct_answers[i]
+
+            pdf.cell(200, 10, txt=f"Question {i+1}: {question}", ln=True)
+            for option in options:
+                pdf.cell(200, 10, txt=option, ln=True)
+            pdf.cell(
+                200, 10, txt=f"(Your Answer: {user_answer}). Correct Answer: {correct_answer}", ln=True)
+            pdf.cell(200, 10, txt="", ln=True)  # Add a blank line for spacing
+
+        pdf_output = "quiz_results.pdf"
+        pdf.output(pdf_output)
+        return pdf_output
+
 
 main = Main()
 
-st.set_page_config(page_title="AI-QuizCraft", layout="wide")
+st.set_page_config(page_title="Kamran Assistant", layout="wide")
 
-st.title("AI-QuizCraft")
+st.title("Kamran Assistant")
 
 # Initialize session state
 if "messages" not in st.session_state:
@@ -234,3 +259,14 @@ elif option == "Generate Quiz":
                 selected_answer = st.session_state.answers[i]
                 st.write(
                     f"Question {i+1}: (Your Answer: {selected_answer}). Correct Answer: {correct_answer}")
+
+            # Generate PDF
+            pdf_file = main.generate_pdf(
+                st.session_state.quiz, user_answers, st.session_state.correct_answers)
+            with open(pdf_file, "rb") as file:
+                st.download_button(
+                    label="Download PDF",
+                    data=file,
+                    file_name="quiz_results.pdf",
+                    mime="application/pdf"
+                )
