@@ -192,7 +192,7 @@ elif option == "Generate Quiz":
     st.header("Generate Quiz")
     subject = st.text_input("Enter the subject (e.g., math, physics, english)")
     num_questions = st.number_input(
-        "Number of questions", min_value=1, max_value=50, step=1)  # Set practical limit from 1 to 50
+        "Number of questions (Max 50)", min_value=1, max_value=50, step=1)  # Set practical limit from 1 to 50
     instruction = st.text_input(
         "Enter any additional instructions (e.g., I need these MCQs from algebra chapter 1)")
 
