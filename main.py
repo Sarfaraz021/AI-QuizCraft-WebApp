@@ -45,7 +45,7 @@ class Main:
         docs = text_splitter.split_documents(documents)
         embeddings = OpenAIEmbeddings()
 
-        Pinecone(api_key=self.pinecone_api_key, environment='gcp-starter')
+        Pinecone(api_key=self.pinecone_api_key, environment='us-east-1-aws')
         vectbd = PineconeVectorStore.from_documents(
             docs, embeddings, index_name=self.pinecone_index_name)
         self.retriever = vectbd.as_retriever()
