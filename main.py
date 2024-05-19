@@ -10,7 +10,6 @@ from langchain_community.document_loaders import Docx2txtLoader, UnstructuredExc
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone
 from fpdf import FPDF
-# from fpdf.fonts import FontFace
 
 from prompt import prompt_template_text
 
@@ -112,7 +111,11 @@ class Main:
     def generate_pdf(self, quiz, user_answers, correct_answers):
         pdf = FPDF()
         pdf.add_page()
-        pdf.add_font("ArialUnicode", "", "arial-unicode-ms.ttf", uni=True)
+        relative_font_path = "font_path"
+        filename_font_path = "arial-unicode-ms.ttf"
+        font_path = os.path.join(relative_font_path, filename_font_path)
+        font_path = "/path/to/arial-unicode-ms.ttf"  # Update this path
+        pdf.add_font("ArialUnicode", "", font_path, uni=True)
         pdf.set_font("ArialUnicode", size=12)
         pdf.cell(200, 10, txt="AI-QuizCraft", ln=True, align='C')
         pdf.cell(200, 10, txt="Quiz Results", ln=True, align='C')
