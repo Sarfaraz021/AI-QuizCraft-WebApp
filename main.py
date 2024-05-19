@@ -10,6 +10,7 @@ from langchain_community.document_loaders import Docx2txtLoader, UnstructuredExc
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone
 from fpdf import FPDF
+from fpdf.fonts import FontFace
 
 from prompt import prompt_template_text
 
@@ -23,7 +24,7 @@ class Main:
         self.filename = 'dummy.txt'
         self.absolute_path = os.path.join(self.relative_path, self.filename)
         self.initialize_retriever(self.absolute_path)
-        self.llm = ChatOpenAI(model="gpt-4", temperature=0.7)
+        self.llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
 
     def load_env_variables(self):
         load_dotenv('var.env')
@@ -44,7 +45,6 @@ class Main:
             chunk_size=10000, chunk_overlap=200)
         docs = text_splitter.split_documents(documents)
         embeddings = OpenAIEmbeddings()
-
         Pinecone(api_key=self.pinecone_api_key, environment='us-east-1-aws')
         vectbd = PineconeVectorStore.from_documents(
             docs, embeddings, index_name=self.pinecone_index_name)
@@ -105,23 +105,15 @@ class Main:
                                "memory": ConversationBufferMemory(memory_key="history", input_key="question")}
         )
 
-        questions = []
-        while len(questions) < num_questions:
-            remaining_questions = num_questions - len(questions)
-            prompt = f"Generate a quiz with {remaining_questions} MCQs for {subject}. {instruction} Make sure to mark the correct answer with [Correct]."
-            assistant_response = chain.invoke(prompt)
-            new_questions = assistant_response['result'].strip().split("\n")
-            questions.extend(new_questions)
-
-        # Trim the questions to the exact number requested
-        questions = questions[:num_questions]
-
-        return "\n".join(questions)
+        prompt = f"Generate a quiz with {num_questions} MCQs for {subject}. {instruction} Make sure to mark the correct answer with [Correct]."
+        assistant_response = chain.invoke(prompt)
+        return assistant_response['result']
 
     def generate_pdf(self, quiz, user_answers, correct_answers):
         pdf = FPDF()
         pdf.add_page()
-        pdf.set_font("Arial", size=12)
+        pdf.add_font("ArialUnicode", "", "arial-unicode-ms.ttf", uni=True)
+        pdf.set_font("ArialUnicode", size=12)
         pdf.cell(200, 10, txt="AI-QuizCraft", ln=True, align='C')
         pdf.cell(200, 10, txt="Quiz Results", ln=True, align='C')
 
@@ -133,8 +125,7 @@ class Main:
 
             pdf.cell(200, 10, txt=f"Question {i+1}: {question}", ln=True)
             for option in options:
-                pdf.cell(200, 10, txt=option.encode(
-                    'latin1', 'replace').decode('latin1'), ln=True)
+                pdf.cell(200, 10, txt=option, ln=True)
             pdf.cell(
                 200, 10, txt=f"(Your Answer: {user_answer}). Correct Answer: {correct_answer}", ln=True)
             pdf.cell(200, 10, txt="", ln=True)  # Add a blank line for spacing
