@@ -114,7 +114,7 @@ class Main:
         relative_font_path = "font_path"
         filename_font_path = "arial-unicode-ms.ttf"
         font_path = os.path.join(relative_font_path, filename_font_path)
-        font_path = "/path/to/arial-unicode-ms.ttf"  # Update this path
+        # font_path = "/path/to/arial-unicode-ms.ttf"  # Update this path
         pdf.add_font("ArialUnicode", "", font_path, uni=True)
         pdf.set_font("ArialUnicode", size=12)
         pdf.cell(200, 10, txt="AI-QuizCraft", ln=True, align='C')
