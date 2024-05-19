@@ -23,7 +23,7 @@ class Main:
         self.filename = 'dummy.txt'
         self.absolute_path = os.path.join(self.relative_path, self.filename)
         self.initialize_retriever(self.absolute_path)
-        self.llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
+        self.llm = ChatOpenAI(model="gpt-4", temperature=0.7)
 
     def load_env_variables(self):
         load_dotenv('var.env')
@@ -44,7 +44,7 @@ class Main:
             chunk_size=10000, chunk_overlap=200)
         docs = text_splitter.split_documents(documents)
         embeddings = OpenAIEmbeddings()
-# pinecone
+
         Pinecone(api_key=self.pinecone_api_key, environment='us-east-1-aws')
         vectbd = PineconeVectorStore.from_documents(
             docs, embeddings, index_name=self.pinecone_index_name)
@@ -105,9 +105,18 @@ class Main:
                                "memory": ConversationBufferMemory(memory_key="history", input_key="question")}
         )
 
-        prompt = f"Generate a quiz with {num_questions} MCQs for {subject}. {instruction} Make sure to mark the correct answer with [Correct]."
-        assistant_response = chain.invoke(prompt)
-        return assistant_response['result']
+        questions = []
+        while len(questions) < num_questions:
+            remaining_questions = num_questions - len(questions)
+            prompt = f"Generate a quiz with {remaining_questions} MCQs for {subject}. {instruction} Make sure to mark the correct answer with [Correct]."
+            assistant_response = chain.invoke(prompt)
+            new_questions = assistant_response['result'].strip().split("\n")
+            questions.extend(new_questions)
+
+        # Trim the questions to the exact number requested
+        questions = questions[:num_questions]
+
+        return "\n".join(questions)
 
     def generate_pdf(self, quiz, user_answers, correct_answers):
         pdf = FPDF()
@@ -124,7 +133,8 @@ class Main:
 
             pdf.cell(200, 10, txt=f"Question {i+1}: {question}", ln=True)
             for option in options:
-                pdf.cell(200, 10, txt=option, ln=True)
+                pdf.cell(200, 10, txt=option.encode(
+                    'latin1', 'replace').decode('latin1'), ln=True)
             pdf.cell(
                 200, 10, txt=f"(Your Answer: {user_answer}). Correct Answer: {correct_answer}", ln=True)
             pdf.cell(200, 10, txt="", ln=True)  # Add a blank line for spacing
