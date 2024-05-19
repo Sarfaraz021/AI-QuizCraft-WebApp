@@ -23,7 +23,7 @@ class Main:
         self.filename = 'dummy.txt'
         self.absolute_path = os.path.join(self.relative_path, self.filename)
         self.initialize_retriever(self.absolute_path)
-        self.llm = ChatOpenAI(model="gpt-4", temperature=0.7)
+        self.llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
 
     def load_env_variables(self):
         load_dotenv('var.env')
