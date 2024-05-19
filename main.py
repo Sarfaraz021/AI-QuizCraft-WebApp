@@ -68,6 +68,10 @@ class Main:
 
         self.process_documents(documents)
 
+        # Remove the file after fine-tuning
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
     def process_documents(self, documents):
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=10000, chunk_overlap=200)
