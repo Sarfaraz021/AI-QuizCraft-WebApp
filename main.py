@@ -173,7 +173,7 @@ if option == "Chat":
             st.markdown(response)
 
 elif option == "Fine-tuning":
-    st.header("Fine-tune RAG Assistant")
+    st.header("Upload your data here")
     uploaded_file = st.file_uploader(
         "Upload a file for fine-tuning", type=["txt", "pdf", "csv", "xlsx", "docx"])
 
