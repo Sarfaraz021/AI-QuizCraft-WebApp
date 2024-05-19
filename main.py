@@ -10,7 +10,7 @@ from langchain_community.document_loaders import Docx2txtLoader, UnstructuredExc
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone
 from fpdf import FPDF
-from fpdf.fonts import FontFace
+# from fpdf.fonts import FontFace
 
 from prompt import prompt_template_text
 
