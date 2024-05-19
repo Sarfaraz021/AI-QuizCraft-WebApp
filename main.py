@@ -41,7 +41,7 @@ class Main:
         loader = TextLoader(directory_path)
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=10000, chunk_overlap=200)
+            chunk_size=1000, chunk_overlap=200)
         docs = text_splitter.split_documents(documents)
         embeddings = OpenAIEmbeddings()
 
@@ -136,9 +136,9 @@ class Main:
 
 main = Main()
 
-st.set_page_config(page_title="Kamran Assistant", layout="wide")
+st.set_page_config(page_title="AI-QuizCraft", layout="wide")
 
-st.title("Kamran Assistant")
+st.title("AI-QuizCraft")
 
 # Initialize session state
 if "messages" not in st.session_state:
