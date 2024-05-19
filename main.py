@@ -41,7 +41,7 @@ class Main:
         loader = TextLoader(directory_path)
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000, chunk_overlap=200)
+            chunk_size=10000, chunk_overlap=200)
         docs = text_splitter.split_documents(documents)
         embeddings = OpenAIEmbeddings()
 
@@ -192,7 +192,7 @@ elif option == "Generate Quiz":
     st.header("Generate Quiz")
     subject = st.text_input("Enter the subject (e.g., math, physics, english)")
     num_questions = st.number_input(
-        "Number of questions", min_value=1, max_value=100, step=1)
+        "Number of questions", min_value=50, max_value=100, step=1)  # Set practical limit
     instruction = st.text_input(
         "Enter any additional instructions (e.g., I need these MCQs from algebra chapter 1)")
 
