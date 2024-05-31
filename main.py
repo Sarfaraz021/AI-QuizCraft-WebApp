@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain.prompts.prompt import PromptTemplate
+from langchain.prompts.prompt import PromptTemplate #prompt eng
 from langchain.chains import RetrievalQA
 from langchain.memory import ConversationBufferMemory
 from langchain_community.document_loaders import Docx2txtLoader, UnstructuredExcelLoader, CSVLoader, TextLoader, PyPDFLoader
