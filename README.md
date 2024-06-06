@@ -21,6 +21,7 @@ pip install docx2txt #to read word documents
 pip install unstructured
 pip install "unstructured[docx]"
 pip install "unstructured[pdf]"
+pip install fpdf
 
 Once Installed all dependencies
 Now time to clone the repo you have forked.
